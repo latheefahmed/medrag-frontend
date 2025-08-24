@@ -1,6 +1,7 @@
 // app/(auth)/login/page.tsx
 "use client";
 
+import { Suspense } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,7 +10,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 
 const Schema = z.object({
   email: z.string().email(),
@@ -17,7 +25,7 @@ const Schema = z.object({
 });
 type FormValues = z.infer<typeof Schema>;
 
-export default function LoginPage() {
+function LoginContent() {
   const { login } = useAuth();
   const router = useRouter();
   const params = useSearchParams();
@@ -30,7 +38,8 @@ export default function LoginPage() {
   async function onSubmit(values: FormValues) {
     try {
       await login(values);
-      router.replace(params.get("next") || "/chat");
+      const next = params.get("next") ?? "/chat";
+      router.replace(next);
     } catch {
       form.setError("email", { message: "Invalid credentials" });
     }
@@ -49,7 +58,9 @@ export default function LoginPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Email</FormLabel>
-                    <FormControl><Input {...field} placeholder="you@example.com" /></FormControl>
+                    <FormControl>
+                      <Input {...field} placeholder="you@example.com" />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -60,12 +71,16 @@ export default function LoginPage() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Password</FormLabel>
-                    <FormControl><Input type="password" {...field} /></FormControl>
+                    <FormControl>
+                      <Input type="password" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button className="w-full" type="submit">Sign in</Button>
+              <Button className="w-full" type="submit">
+                Sign in
+              </Button>
             </form>
           </Form>
           <p className="text-sm text-zinc-600">
@@ -74,5 +89,13 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-zinc-600">Loading…</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
