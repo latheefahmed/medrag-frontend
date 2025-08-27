@@ -70,7 +70,9 @@ function normalizeRightPane(session: AnyRec | undefined): RightPaneData {
         }))
       : []);
 
-  const plan = rp.plan ?? { chunks: rp.chunks ?? [], time_tags: rp.time_tags ?? [], exclusions: rp.exclusions ?? [] };
+  const plan =
+    rp.plan ?? { chunks: rp.chunks ?? [], time_tags: rp.time_tags ?? [], exclusions: rp.exclusions ?? [] };
+
   return { results, booleans, overview, evidence, plan };
 }
 
@@ -78,11 +80,10 @@ export default function ChatPage() {
   const { listQ, activeQ, activeId, setActiveId, createM, deleteM, titleM, sendM } =
     useSessions();
 
-  // single toggle bar
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
 
-  // pick first session automatically when list loads
+  // auto-pick first session when list loads
   useEffect(() => {
     if (!activeId && listQ.data?.length) setActiveId(listQ.data[0].id);
   }, [activeId, listQ.data, setActiveId]);
@@ -137,7 +138,7 @@ export default function ChatPage() {
         className="mx-auto max-w-[1700px] px-5 py-5 grid gap-5"
         style={{ gridTemplateColumns: `${LEFT} ${CENTER} ${RIGHT}` }}
       >
-        {/* LEFT (three-dot actions) */}
+        {/* LEFT */}
         <aside
           className={`overflow-hidden transition-all ${
             leftOpen ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -213,29 +214,26 @@ export default function ChatPage() {
           </Card>
         </aside>
 
-        {/* CENTER (composer pinned to bottom) */}
+        {/* CENTER */}
         <section className="min-w-0">
-          {/* FIXED: correct height class so bottom composer actually sits at the bottom */}
           <Card className="h-[calc(100dvh-130px)] bg-white shadow-md ring-1 ring-black/5 rounded-3xl overflow-hidden">
             <CardContent className="p-0 h-full flex flex-col">
-              {/* messages area fills remaining space */}
               <div className="flex-1 min-h-0">
-                <MessageList messages={messages} />
+                <MessageList messages={messages} isLoading={!!sendM.isPending} />
               </div>
 
-              {/* sticky bottom composer */}
               <div className="border-t p-4 bg-white/85 backdrop-blur-sm">
                 <Composer
                   onSend={onSend}
                   disabled={sendM.isPending}
-                  onFocus={ensureActive} // auto-create chat as soon as user focuses
+                  onFocus={ensureActive}
                 />
               </div>
             </CardContent>
           </Card>
         </section>
 
-        {/* RIGHT (references) */}
+        {/* RIGHT */}
         <aside
           className={`overflow-hidden transition-all ${
             rightOpen ? "opacity-100" : "opacity-0 pointer-events-none"

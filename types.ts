@@ -1,4 +1,4 @@
-// types.ts (replace contents with this; adjust imports if you keep other types elsewhere)
+// types.ts
 
 export type Role =
   | "student"
@@ -22,14 +22,25 @@ export type SignupInput = { name?: string; email: string; password: string; purp
 
 export type MsgRole = "user" | "assistant" | "system";
 
+export type Reference = {
+  pmid?: string;
+  title: string;
+  journal?: string;
+  year?: number;
+  score?: number;
+  url?: string;
+  abstract?: string;
+  source?: string;
+};
+
 export type Message = {
   id: string;
   role: MsgRole;
   content: string;
-  ts?: number; // keep optional; UI tolerates missing ts
+  ts?: number; 
+  references?: Reference[]; 
 };
 
-// ---- Right pane rich model ----
 export type RankedDoc = {
   pmid: string;
   title: string;
@@ -74,7 +85,7 @@ export type Session = {
   createdAt: number;
   updatedAt: number;
   messages: Message[];
-  rightPane?: RightPaneData | any; // backend variations; page.tsx normalizes
+  rightPane?: RightPaneData | any; 
 };
 
 export type SessionSummary = Pick<Session, "id" | "title" | "updatedAt">;
