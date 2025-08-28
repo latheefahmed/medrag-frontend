@@ -1,57 +1,77 @@
+// app/(auth)/verify/page.tsx  (or app/auth/verify/page.tsx)
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 
-export default function VerifyPage() {
+// prevent prerender; this route depends on query params
+export const dynamic = "force-dynamic";
+
+function VerifyContent() {
   const params = useSearchParams();
   const router = useRouter();
-  const token = params.get("token") || "";
+  const token = params.get("token");
 
-  const [state, setState] = useState<"idle" | "ok" | "err" | "loading">("idle");
+  const [status, setStatus] = useState<"idle" | "ok" | "error" | "missing">("idle");
   const [msg, setMsg] = useState<string>("");
 
   useEffect(() => {
-    async function go() {
-      if (!token) return;
-      setState("loading");
+    let cancelled = false;
+
+    async function run() {
+      if (!token) {
+        setStatus("missing");
+        setMsg("Missing verification token.");
+        return;
+      }
       try {
-        // Try GET first, then fallback to POST
-        try {
-          await api.get(`/auth/verify`, { params: { token } });
-        } catch {
-          await api.post(`/auth/verify`, { token });
-        }
-        setState("ok");
-        setMsg("Email verified! You can now continue.");
-        setTimeout(() => router.replace("/chat"), 1200);
-      } catch (e: any) {
-        setState("err");
-        setMsg("Verification failed or link expired.");
+        await api.get("/auth/verify", { params: { token } });
+        if (cancelled) return;
+        setStatus("ok");
+        setMsg("Email verified. Redirecting to login…");
+        setTimeout(() => router.replace("/login"), 1200);
+      } catch {
+        if (cancelled) return;
+        setStatus("error");
+        setMsg("Link invalid or expired.");
       }
     }
-    go();
+
+    run();
+    return () => { cancelled = true; };
   }, [token, router]);
+
+  const title =
+    status === "ok" ? "Verified" :
+    status === "error" ? "Verification failed" :
+    "Verify email";
 
   return (
     <main className="min-h-screen grid place-items-center p-4">
       <Card className="w-full max-w-md">
-        <CardContent className="p-6 space-y-4 text-center">
-          <h1 className="text-xl font-semibold">Verify your email</h1>
-          <p className="text-sm text-zinc-600">
-            {state === "loading" && "Verifying..."}
-            {state === "ok" && msg}
-            {state === "err" && msg}
-            {state === "idle" && (!token ? "No token provided." : "Working…")}
+        <CardContent className="p-6 space-y-4">
+          <h1 className="text-xl font-semibold">{title}</h1>
+          <p className="text-sm text-muted-foreground">
+            {msg || "Checking your link…"}
           </p>
-          <div className="flex justify-center">
-            <Button onClick={() => router.replace("/chat")}>Back to app</Button>
+          <div className="pt-2">
+            <Button className="w-full" onClick={() => router.push("/login")}>
+              Go to login
+            </Button>
           </div>
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}>
+      <VerifyContent />
+    </Suspense>
   );
 }
