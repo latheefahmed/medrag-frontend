@@ -22,7 +22,7 @@ export default function MessageList({
   }, [messages, isLoading]);
 
   return (
-    <div ref={scrollerRef} className="h-full w-full overflow-auto">
+    <div ref={scrollerRef} className="h-full w-full overflow-auto overscroll-contain">
       <div className="min-h-full flex flex-col justify-end gap-4 p-6">
         {!messages.length && !isLoading && (
           <div className="text-sm text-zinc-500">Start by asking a question…</div>

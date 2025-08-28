@@ -40,7 +40,7 @@ export default function SignupPage() {
   async function onSubmit(values: FormValues) {
     const { confirmPassword, ...payload } = values;
     try {
-      await signup(payload as any);
+      await signup(payload); // ✅ send role + optional name
       router.replace("/chat");
     } catch {
       form.setError("email", { message: "Email already in use" });
@@ -85,11 +85,7 @@ export default function SignupPage() {
                     <FormControl>
                       <div className="relative">
                         <Input type={show1 ? "text" : "password"} {...field} />
-                        <button
-                          type="button"
-                          onClick={() => setShow1((s) => !s)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-600"
-                        >
+                        <button type="button" onClick={() => setShow1(s => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-600">
                           {show1 ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
@@ -107,11 +103,7 @@ export default function SignupPage() {
                     <FormControl>
                       <div className="relative">
                         <Input type={show2 ? "text" : "password"} {...field} />
-                        <button
-                          type="button"
-                          onClick={() => setShow2((s) => !s)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-600"
-                        >
+                        <button type="button" onClick={() => setShow2(s => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-zinc-600">
                           {show2 ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>

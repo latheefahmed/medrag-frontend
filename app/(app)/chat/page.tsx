@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useSessions } from "@/hooks/useSessions";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import TabsPanel from "@/components/right-pane/TabsPanel";
 import MessageList from "@/components/chat/MessageList";
 import Composer from "@/components/chat/Composer";
 import type { RightPaneData } from "@/types";
+import TabsPanel from "@/components/right-pane/TabsPanel";
 import { MoreVertical } from "lucide-react";
 import {
   DropdownMenu,
@@ -15,6 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
 
 type AnyRec = Record<string, any>;
 
@@ -80,10 +80,7 @@ export default function ChatPage() {
   const { listQ, activeQ, activeId, setActiveId, createM, deleteM, titleM, sendM } =
     useSessions();
 
-  const [leftOpen, setLeftOpen] = useState(true);
-  const [rightOpen, setRightOpen] = useState(true);
-
-  // auto-pick first session when list loads
+  // pick first session when list loads
   useEffect(() => {
     if (!activeId && listQ.data?.length) setActiveId(listQ.data[0].id);
   }, [activeId, listQ.data, setActiveId]);
@@ -95,7 +92,6 @@ export default function ChatPage() {
     [activeQ.data]
   );
 
-  // ensure there is an active session (used by focus + send)
   const ensureActive = async () => {
     if (activeId) return activeId;
     if (listQ.data?.length) {
@@ -114,138 +110,110 @@ export default function ChatPage() {
     sendM.mutate({ id, text: t });
   };
 
-  // proportions
-  const LEFT = leftOpen ? "clamp(10rem, 13vw, 12rem)" : "0";
+  // fixed grid; only center & right panes scroll
+  const LEFT = "clamp(10rem, 13vw, 12rem)";
   const CENTER = "minmax(900px, 1fr)";
-  const RIGHT = rightOpen ? "clamp(18rem, 22vw, 22rem)" : "0";
+  const RIGHT = "clamp(18rem, 22vw, 22rem)";
+  const STICKY_TOP = 64; // header height
 
   return (
     <div className="min-h-[100dvh] bg-gradient-to-b from-zinc-50 via-zinc-50 to-zinc-100">
-      {/* toggle bar */}
-      <div className="sticky top-0 z-10 bg-zinc-50/80 backdrop-blur border-b">
-        <div className="mx-auto max-w-[1700px] px-5 py-2 flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setLeftOpen((v) => !v)}>
-            {leftOpen ? "Hide Sessions" : "Show Sessions"}
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setRightOpen((v) => !v)}>
-            {rightOpen ? "Hide Results" : "Show Results"}
-          </Button>
-          <div className="ml-auto text-sm text-zinc-500">MedRAG</div>
-        </div>
-      </div>
-
       <div
         className="mx-auto max-w-[1700px] px-5 py-5 grid gap-5"
         style={{ gridTemplateColumns: `${LEFT} ${CENTER} ${RIGHT}` }}
       >
-        {/* LEFT */}
-        <aside
-          className={`overflow-hidden transition-all ${
-            leftOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
-        >
-          <Card className="h-[calc(100dvh-130px)] bg-white/95 shadow-sm ring-1 ring-black/5 rounded-2xl">
-            <CardContent className="p-4 space-y-3 h-full overflow-auto">
-              <div className="flex items-center gap-2">
-                <input
-                  className="w-full rounded-md border px-3 py-2 text-sm"
-                  placeholder="New chat"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter")
-                      createM.mutate((e.target as HTMLInputElement).value || "Untitled");
-                  }}
-                />
-                <Button size="sm" onClick={() => createM.mutate("New chat")}>
-                  New
-                </Button>
-              </div>
+        {/* LEFT (sticky sessions) */}
+        <aside>
+          <div style={{ position: "sticky", top: STICKY_TOP }}>
+            <Card className="bg-white/95 shadow-sm ring-1 ring-black/5 rounded-2xl">
+              <CardContent className="p-4 space-y-3 h-[calc(100dvh-96px)] overflow-auto overscroll-contain">
+                <div className="flex items-center gap-2">
+                  <input
+                    className="w-full rounded-md border px-3 py-2 text-sm"
+                    placeholder="New chat"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter")
+                        createM.mutate((e.target as HTMLInputElement).value || "Untitled");
+                    }}
+                  />
+                  <Button size="sm" onClick={() => createM.mutate("New chat")}>
+                    New
+                  </Button>
+                </div>
 
-              <div className="space-y-1">
-                {sessions.map((s) => (
-                  <div
-                    key={s.id}
-                    className={`flex items-center rounded-md border pl-2 pr-1 py-1 text-sm ${
-                      s.id === activeId ? "bg-zinc-50" : "bg-white"
-                    }`}
-                  >
-                    <button
-                      className="truncate text-left flex-1"
-                      onClick={() => setActiveId(s.id)}
-                      title={s.title}
+                <div className="space-y-1">
+                  {sessions.map((s) => (
+                    <div
+                      key={s.id}
+                      className={`flex items-center rounded-md border pl-2 pr-1 py-1 text-sm ${
+                        s.id === activeId ? "bg-zinc-50" : "bg-white"
+                      }`}
                     >
-                      {s.title || "Untitled"}
-                    </button>
+                      <button
+                        className="truncate text-left flex-1"
+                        onClick={() => setActiveId(s.id)}
+                        title={s.title}
+                      >
+                        {s.title || "Untitled"}
+                      </button>
 
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          className="p-1 rounded-md hover:bg-zinc-100"
-                          aria-label="Session actions"
-                        >
-                          <MoreVertical className="h-4 w-4 text-zinc-600" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-40">
-                        <DropdownMenuItem
-                          onClick={() =>
-                            titleM?.mutate?.({
-                              id: s.id,
-                              title: prompt("Rename", s.title) || s.title,
-                            })
-                          }
-                        >
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-red-600"
-                          onClick={() => deleteM.mutate(s.id)}
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                ))}
-                {!sessions.length && (
-                  <p className="text-xs text-zinc-500">Your past chats will appear here.</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="p-1 rounded-md hover:bg-zinc-100" aria-label="Session actions">
+                            <MoreVertical className="h-4 w-4 text-zinc-600" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem
+                            onClick={() =>
+                              titleM?.mutate?.({ id: s.id, title: prompt("Rename", s.title) || s.title })
+                            }
+                          >
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-red-600" onClick={() => deleteM.mutate(s.id)}>
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  ))}
+                  {!sessions.length && (
+                    <p className="text-xs text-zinc-500">Your past chats will appear here.</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </aside>
 
-        {/* CENTER */}
+        {/* CENTER (only this scrolls for messages) */}
         <section className="min-w-0">
-          <Card className="h-[calc(100dvh-130px)] bg-white shadow-md ring-1 ring-black/5 rounded-3xl overflow-hidden">
-            <CardContent className="p-0 h-full flex flex-col">
-              <div className="flex-1 min-h-0">
-                <MessageList messages={messages} isLoading={!!sendM.isPending} />
-              </div>
-
-              <div className="border-t p-4 bg-white/85 backdrop-blur-sm">
-                <Composer
-                  onSend={onSend}
-                  disabled={sendM.isPending}
-                  onFocus={ensureActive}
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <div style={{ position: "sticky", top: STICKY_TOP }}>
+            <Card className="bg-white shadow-md ring-1 ring-black/5 rounded-3xl overflow-hidden">
+              <CardContent className="p-0 h-[calc(100dvh-96px)] flex flex-col">
+                <div className="flex-1 min-h-0">
+                  <MessageList messages={messages} isLoading={!!sendM.isPending} />
+                </div>
+                <div className="border-t p-4 bg-white/85 backdrop-blur-sm">
+                  <Composer onSend={onSend} disabled={sendM.isPending} onFocus={ensureActive} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </section>
 
-        {/* RIGHT */}
-        <aside
-          className={`overflow-hidden transition-all ${
-            rightOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-          }`}
-        >
-          <Card className="h-[calc(100dvh-130px)] bg-white/95 shadow-sm ring-1 ring-black/5 rounded-3xl overflow-hidden">
-            <CardContent className="p-0 h-full">
-              <div className="h-full p-3">
-                <TabsPanel data={paneData} />
-              </div>
-            </CardContent>
-          </Card>
+        {/* RIGHT (references scroll independently) */}
+        <aside>
+          <div style={{ position: "sticky", top: STICKY_TOP }}>
+            <Card className="bg-white/95 shadow-sm ring-1 ring-black/5 rounded-3xl overflow-hidden">
+              <CardContent className="p-0 h-[calc(100dvh-96px)] overflow-auto overscroll-contain">
+                <div className="h-full p-3">
+                  <TabsPanel data={paneData} />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </aside>
       </div>
     </div>

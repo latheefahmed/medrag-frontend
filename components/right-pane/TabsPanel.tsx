@@ -12,7 +12,6 @@ const copy = (t: string) => navigator.clipboard?.writeText(t).catch(() => {});
 export default function TabsPanel({ data }: { data?: RightPaneData }) {
   const { selectedMessage } = useSelectedMessage();
 
-  // Prefer references from the selected AI message (if present); fall back to pane data.
   const fromSelected =
     selectedMessage?.references?.map((r) => ({
       pmid: r.pmid ?? "",
@@ -25,9 +24,7 @@ export default function TabsPanel({ data }: { data?: RightPaneData }) {
     })) ?? [];
 
   const base = (data?.results ?? []).filter(Boolean);
-  const results = (fromSelected.length ? fromSelected : base) as NonNullable<
-    RightPaneData["results"]
-  >;
+  const results = (fromSelected.length ? fromSelected : base) as NonNullable<RightPaneData["results"]>;
 
   // de-dupe by pmid/url/title
   const uniq: typeof results = [];
@@ -46,18 +43,17 @@ export default function TabsPanel({ data }: { data?: RightPaneData }) {
       <CardContent className="p-3 h-full">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-base">
-            {usingSelected ? "References for selected answer" : "References"}
+            {usingSelected ? "References" : "References"}
           </h2>
           {usingSelected && (
-            <div className="text-xs text-zinc-500">Click a different AI message to switch.</div>
+            <div className="text-xs text-zinc-500"></div>
           )}
         </div>
 
-        <ScrollArea className="h-[calc(100dvh-200px)] pr-1">
+        <ScrollArea className="h-full pr-1">
           <div className="space-y-4">
             {uniq.map((d, i) => {
-              const url =
-                d.url || (d.pmid ? `https://pubmed.ncbi.nlm.nih.gov/${d.pmid}/` : undefined);
+              const url = d.url || (d.pmid ? `https://pubmed.ncbi.nlm.nih.gov/${d.pmid}/` : undefined);
               return (
                 <div key={`${d.pmid ?? d.url ?? i}`} className="rounded-md p-3 hover:bg-zinc-50">
                   {url ? (
@@ -73,9 +69,7 @@ export default function TabsPanel({ data }: { data?: RightPaneData }) {
                     <div className="font-medium text-[15px] leading-6">{d.title}</div>
                   )}
                   <div className="text-xs text-zinc-600 mt-1">
-                    {d.journal || ""}
-                    {d.year ? ` • ${d.year}` : ""}
-                    {d.pmid ? ` • PMID ${d.pmid}` : ""}
+                    {d.journal || ""}{d.year ? ` • ${d.year}` : ""}{d.pmid ? ` • PMID ${d.pmid}` : ""}
                   </div>
                   <div className="flex items-center gap-2 mt-2">
                     {d.pmid && (
@@ -84,12 +78,7 @@ export default function TabsPanel({ data }: { data?: RightPaneData }) {
                       </Button>
                     )}
                     {url && (
-                      <a
-                        className="text-xs inline-flex items-center gap-1 underline"
-                        href={url}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
+                      <a className="text-xs inline-flex items-center gap-1 underline" href={url} target="_blank" rel="noreferrer">
                         <ExternalLink className="h-3 w-3" /> Open
                       </a>
                     )}

@@ -1,16 +1,38 @@
 ﻿"use client";
-import { Badge } from "@/components/ui/badge";
-import type { Role } from "@/types";
 
-const colors: Record<Role, string> = {
-  student: "bg-blue-100 text-blue-800",
-  researcher: "bg-purple-100 text-purple-800",
-  "data-analyst": "bg-amber-100 text-amber-800",
-  doctor: "bg-rose-100 text-rose-800",
-  clinician: "bg-emerald-100 text-emerald-800",
-  admin: "bg-zinc-900 text-white"
+type Role =
+  | "student"
+  | "researcher"
+  | "data_analyst"
+  | "doctor"
+  | "clinician"
+  | "admin"
+  | string;
+
+const label: Record<string, string> = {
+  student: "Student",
+  researcher: "Researcher",
+  data_analyst: "Data analyst",
+  doctor: "Doctor",
+  clinician: "Clinician",
+  admin: "Admin",
 };
 
 export default function RoleBadge({ role }: { role: Role }) {
-  return <Badge className={`${colors[role]} capitalize`}>{role.replace("-", " ")}</Badge>;
+  const c =
+    role === "admin"
+      ? "bg-amber-100 text-amber-900 border-amber-200"
+      : role === "doctor" || role === "clinician"
+      ? "bg-emerald-100 text-emerald-900 border-emerald-200"
+      : role === "researcher"
+      ? "bg-indigo-100 text-indigo-900 border-indigo-200"
+      : role === "data_analyst"
+      ? "bg-sky-100 text-sky-900 border-sky-200"
+      : "bg-zinc-100 text-zinc-900 border-zinc-200";
+
+  return (
+    <span className={`inline-flex items-center rounded-full border px-2 py-[2px] text-xs ${c}`}>
+      {label[role] ?? role}
+    </span>
+  );
 }

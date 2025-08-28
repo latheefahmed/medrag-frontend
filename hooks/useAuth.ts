@@ -5,12 +5,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 
-export type Me = { email: string; role?: string };
+export type Me = { email: string; role?: string; verified?: boolean };
 
 async function fetchMe(): Promise<Me> {
   const { data } = await api.get("/auth/me");
   return data;
 }
+
+type LoginArgs = { email: string; password: string };
+type SignupArgs = { email: string; password: string; role: "student" | "researcher" | "data_analyst" | "doctor" | "clinician"; name?: string };
 
 export function useAuth() {
   const qc = useQueryClient();
@@ -23,7 +26,7 @@ export function useAuth() {
   });
 
   const loginM = useMutation({
-    mutationFn: async ({ email, password }: { email: string; password: string }) => {
+    mutationFn: async ({ email, password }: LoginArgs) => {
       const { data } = await api.post("/auth/login", { email, password });
       return data;
     },
@@ -34,8 +37,10 @@ export function useAuth() {
   });
 
   const signupM = useMutation({
-    mutationFn: async ({ email, password }: { email: string; password: string }) => {
-      await api.post("/auth/signup", { email, password });
+    mutationFn: async ({ email, password, role, name }: SignupArgs) => {
+      // 🔑 Send role (and optional name) to backend
+      await api.post("/auth/signup", { email, password, role, name });
+      // auto-login for now (email verification comes next phase)
       const { data } = await api.post("/auth/login", { email, password });
       return data;
     },
@@ -61,8 +66,8 @@ export function useAuth() {
     meError: meQuery.isError,
     isAuthenticated: meQuery.status === "success",
 
-    login: (args: { email: string; password: string }) => loginM.mutateAsync(args),
-    signup: (args: { email: string; password: string }) => signupM.mutateAsync(args),
+    login: (args: LoginArgs) => loginM.mutateAsync(args),
+    signup: (args: SignupArgs) => signupM.mutateAsync(args),
     logout: () => logoutM.mutateAsync(),
 
     loginM, signupM, logoutM,

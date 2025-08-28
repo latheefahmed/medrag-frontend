@@ -1,21 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type {
-  Session,
-  SessionSummary,
-  Message,
-} from "@/types";
+import type { Session, SessionSummary, Message } from "@/types";
 
-const ASK_PATH = "/ask"; // change if your backend uses another route
-
+const ASK_PATH = "/ask";
 const now = () => Date.now();
+
+function dedupeMessages(arr: Message[]): Message[] {
+  const seen = new Set<string>();
+  const out: Message[] = [];
+  for (const m of arr) {
+    const k = String(m.id || "") || `${m.role}-${m.ts}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(m);
+  }
+  return out;
+}
 
 export function useSessions() {
   const qc = useQueryClient();
@@ -37,11 +40,13 @@ export function useSessions() {
     queryKey: ["sessions"],
     queryFn: async () => {
       const { data } = await api.get("/sessions");
-      // Accept several shapes: {items: [...]}, {sessions: [...]}, or [...]
       const items = (data?.items || data?.sessions || data) ?? [];
       return items as SessionSummary[];
     },
     staleTime: 10_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    keepPreviousData: true,
   });
 
   const activeQ = useQuery({
@@ -51,17 +56,18 @@ export function useSessions() {
       const { data } = await api.get(`/sessions/${activeId}`);
       return data as Session;
     },
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    keepPreviousData: true,
   });
 
   // ----- Mutations -----
   const createM = useMutation({
     mutationFn: async (title: string) => {
       const { data } = await api.post("/sessions", { title });
-      const s = data as Session;
-      return s;
+      return data as Session;
     },
     onSuccess: (s) => {
-      // seed caches
       qc.setQueryData<SessionSummary[]>(["sessions"], (prev = []) => {
         const row: SessionSummary = { id: s.id, title: s.title, updatedAt: s.updatedAt };
         return [row, ...prev.filter((x) => x.id !== s.id)];
@@ -103,30 +109,22 @@ export function useSessions() {
 
   const sendM = useMutation({
     mutationFn: async ({ id, text }: { id: string; text: string }) => {
-      // 1) optimistic user message into cache
       const userMsg: Message = {
         id: crypto.randomUUID(),
         role: "user",
         content: text,
         ts: now(),
       };
+      // optimistic user message
       qc.setQueryData<Session>(["session", id], (prev) => {
         if (!prev) return prev as any;
         const messages = [...(prev.messages || []), userMsg];
         return { ...prev, messages, updatedAt: now() };
       });
 
-      // 2) ask backend (it should also persist messages in Cosmos)
       const { data } = await api.post(ASK_PATH, { q: text, session_id: id });
 
-      // expected response (tolerant):
-      // {
-      //   session_id: string;
-      //   message: { id, role, content, ts?, references? };
-      //   rightPane? | right_pane? | results? | documents?
-      // }
       const sid: string = data.session_id || id;
-
       const aiMsg: Message = {
         id: data.message?.id || crypto.randomUUID(),
         role: (data.message?.role as Message["role"]) || "assistant",
@@ -134,25 +132,19 @@ export function useSessions() {
         ts: data.message?.ts ?? now(),
         references: data.message?.references ?? data.references ?? [],
       };
-
       const rightPane =
         data.rightPane ??
         data.right_pane ??
-        (data.results || data.documents
-          ? { results: data.results ?? data.documents }
-          : undefined);
+        (data.results || data.documents ? { results: data.results ?? data.documents } : undefined);
 
       return { sid, userMsg, aiMsg, rightPane };
     },
     onSuccess: ({ sid, userMsg, aiMsg, rightPane }) => {
-      // ensure active session matches server session
       if (!activeId || activeId !== sid) setActiveId(sid);
 
-      // merge returned AI message + right pane into cache
       qc.setQueryData<Session>(["session", sid], (prev) => {
         const base: Session =
-          prev ??
-          ({
+          prev ?? ({
             id: sid,
             title: "New chat",
             createdAt: now(),
@@ -160,7 +152,10 @@ export function useSessions() {
             messages: [],
           } as Session);
 
-        const messages = [...(base.messages || []), userMsg, aiMsg];
+        const alreadyHasUser = (base.messages || []).some((m) => m.id === userMsg.id);
+        const messages = alreadyHasUser
+          ? [...base.messages, aiMsg] // only add AI if user was optimistically added
+          : [...base.messages, userMsg, aiMsg];
 
         return {
           ...base,
@@ -170,27 +165,14 @@ export function useSessions() {
         };
       });
 
-      // bump session to the top of the list
       qc.setQueryData<SessionSummary[]>(["sessions"], (prev = []) => {
         const existing = prev.find((x) => x.id === sid);
-        const row: SessionSummary = {
-          id: sid,
-          title: existing?.title || "New chat",
-          updatedAt: now(),
-        };
+        const row: SessionSummary = { id: sid, title: existing?.title || "New chat", updatedAt: now() };
         return [row, ...prev.filter((x) => x.id !== sid)];
       });
     },
   });
 
-  return {
-    listQ,
-    activeQ,
-    activeId,
-    setActiveId,
-    createM,
-    deleteM,
-    titleM,
-    sendM,
-  };
+
+  return { listQ, activeQ, activeId, setActiveId, createM, deleteM, titleM, sendM };
 }

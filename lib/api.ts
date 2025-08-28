@@ -6,19 +6,23 @@ export const api = axios.create({
   timeout: 30000,
 });
 
-export async function getMe() {
-  const { data } = await api.get("/auth/me");
-  return data as import("@/types").AuthMe;
-}
-export async function postLogin(body: import("@/types").LoginInput) {
-  const { data } = await api.post("/auth/login", body);
+// ---- existing helpers left intact ----
+
+export async function postResendVerification() {
+  const { data } = await api.post("/auth/resend-verification");
   return data;
 }
-export async function postSignup(body: import("@/types").SignupInput) {
-  const { data } = await api.post("/auth/signup", body);
+
+// Admin helpers (will 403 until backend exists)
+export async function getAdminUsers(params?: Record<string, any>) {
+  const { data } = await api.get("/admin/users", { params });
   return data;
 }
-export async function postLogout() {
-  const { data } = await api.post("/auth/logout");
+export async function getAdminSessions(params?: Record<string, any>) {
+  const { data } = await api.get("/admin/sessions", { params });
+  return data;
+}
+export async function getAdminUsage(params?: Record<string, any>) {
+  const { data } = await api.get("/admin/usage", { params });
   return data;
 }

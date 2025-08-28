@@ -1,9 +1,12 @@
 // types.ts
 
+/* ---------- Auth / Users ---------- */
+
 export type Role =
   | "student"
   | "researcher"
-  | "data-analyst"
+  | "data_analyst"   // underscore
+  | "data-analyst"   // hyphen (tolerate both)
   | "doctor"
   | "clinician"
   | "admin";
@@ -18,7 +21,17 @@ export type User = {
 export type AuthMe = { ok: boolean; user: User | null };
 
 export type LoginInput = { email: string; password: string };
-export type SignupInput = { name?: string; email: string; password: string; purpose: Role };
+
+/** Accept either `role` or `purpose` to keep API flexible across routes */
+export type SignupInput = {
+  name?: string;
+  email: string;
+  password: string;
+  role?: Role;
+  purpose?: Role;
+};
+
+/* ---------- Chat / RAG ---------- */
 
 export type MsgRole = "user" | "assistant" | "system";
 
@@ -37,12 +50,12 @@ export type Message = {
   id: string;
   role: MsgRole;
   content: string;
-  ts?: number; 
-  references?: Reference[]; 
+  ts?: number;
+  references?: Reference[];
 };
 
 export type RankedDoc = {
-  pmid: string;
+  pmid?: string;          // optional: some normalizers may not emit it
   title: string;
   journal?: string;
   year?: number;
@@ -55,7 +68,7 @@ export type BooleanItem = { group: string; query: string; note?: string };
 
 export type EvidenceItem = {
   n?: number;
-  pmid: string;
+  pmid?: string;
   year?: number;
   journal?: string;
   title: string;
@@ -68,24 +81,34 @@ export type Overview = {
   quality_and_limits?: string[];
 };
 
-export type PlanLite = { chunks?: string[]; time_tags?: string[]; exclusions?: string[] };
+export type PlanLite = {
+  chunks?: string[];
+  time_tags?: string[];
+  exclusions?: string[];
+};
 
 export type RightPaneData = {
   results: RankedDoc[];
-  booleans: BooleanItem[];
+  booleans?: BooleanItem[];      // optional; we supply [] when missing
   evidence?: EvidenceItem[];
-  overview?: Overview;
+  overview?: Overview | string;  // tolerate string summary or object
   plan?: PlanLite;
 };
 
-// ---- Sessions ----
+/* ---------- Sessions ---------- */
+
 export type Session = {
   id: string;
   title: string;
   createdAt: number;
   updatedAt: number;
   messages: Message[];
-  rightPane?: RightPaneData | any; 
+  rightPane?: RightPaneData | any; // tolerate legacy shapes
 };
 
 export type SessionSummary = Pick<Session, "id" | "title" | "updatedAt">;
+
+/* ---------- (Optional) tiny helper ---------- */
+/** Normalize role to underscore style if you want consistency downstream. */
+export const normalizeRole = (r?: Role): Role | undefined =>
+  r ? ((r.replace("-", "_") as Role) || r) : undefined;

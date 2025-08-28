@@ -20,7 +20,19 @@ export function useSelectedMessage() {
 }
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  const [client] = useState(() => new QueryClient());
+  const [client] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            refetchOnWindowFocus: false,
+            retry: 1,
+            staleTime: 30_000,
+          },
+        },
+      })
+  );
+
   const [selectedMessage, setSelectedMessage] = useState<Message | undefined>(undefined);
 
   const value = useMemo<SelectedCtx>(

@@ -1,4 +1,3 @@
-// app/(auth)/login/page.tsx
 "use client";
 
 import { Suspense } from "react";
@@ -10,19 +9,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
-const Schema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
+const Schema = z.object({ email: z.string().email(), password: z.string().min(6) });
 type FormValues = z.infer<typeof Schema>;
 
 function LoginContent() {
@@ -58,9 +47,7 @@ function LoginContent() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="you@example.com" />
-                    </FormControl>
+                    <FormControl><Input {...field} placeholder="you@example.com" /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -71,21 +58,18 @@ function LoginContent() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
+                    <FormControl><Input type="password" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button className="w-full" type="submit">
-                Sign in
-              </Button>
+              <Button className="w-full" type="submit">Sign in</Button>
             </form>
           </Form>
-          <p className="text-sm text-zinc-600">
-            No account? <a className="underline" href="/signup">Create one</a>
-          </p>
+          <div className="flex items-center justify-between text-sm text-zinc-600">
+            <a className="underline" href="/signup">Create account</a>
+            <a className="underline" href="/reset">Forgot password?</a>
+          </div>
         </CardContent>
       </Card>
     </main>
