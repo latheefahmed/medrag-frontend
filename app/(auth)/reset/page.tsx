@@ -1,7 +1,7 @@
-// app/auth/reset/page.tsx
+// app/(auth)/reset/page.tsx  (or app/auth/reset/page.tsx)
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -13,6 +13,9 @@ import {
   Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
 } from "@/components/ui/form";
 import { api } from "@/lib/api";
+
+// Force this route to be dynamic so Vercel doesn’t try to prerender it
+export const dynamic = "force-dynamic";
 
 const RequestSchema = z.object({ email: z.string().email() });
 type RequestValues = z.infer<typeof RequestSchema>;
@@ -26,11 +29,11 @@ const ResetSchema = z.object({
 });
 type ResetValues = z.infer<typeof ResetSchema>;
 
-export default function ResetPage() {
+// Inner client component that uses useSearchParams
+function ResetContent() {
   const params = useSearchParams();
   const router = useRouter();
   const token = params.get("token");
-
   const [done, setDone] = useState<string>("");
 
   // Request flow (no token)
@@ -127,5 +130,14 @@ export default function ResetPage() {
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+// Export wrapped in Suspense to satisfy Next.js CSR bailout rule
+export default function ResetPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}>
+      <ResetContent />
+    </Suspense>
   );
 }
