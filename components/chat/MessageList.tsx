@@ -32,7 +32,6 @@ export default function MessageList({
           const isAI = m.role !== "user";
           const bubble = (
             <div
-              key={m.id}
               className={cn(
                 "max-w-[68ch] rounded-3xl px-4 py-3 text-base leading-7 shadow-sm",
                 m.role === "user"
@@ -64,7 +63,7 @@ export default function MessageList({
               {bubble}
             </button>
           ) : (
-            bubble
+            <div key={m.id}>{bubble}</div>
           );
         })}
 

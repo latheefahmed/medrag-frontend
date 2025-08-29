@@ -8,18 +8,6 @@ import type { Session, SessionSummary, Message } from "@/types";
 const ASK_PATH = "/ask";
 const now = () => Date.now();
 
-function dedupeMessages(arr: Message[]): Message[] {
-  const seen = new Set<string>();
-  const out: Message[] = [];
-  for (const m of arr) {
-    const k = String(m.id || "") || `${m.role}-${m.ts}`;
-    if (seen.has(k)) continue;
-    seen.add(k);
-    out.push(m);
-  }
-  return out;
-}
-
 export function useSessions() {
   const qc = useQueryClient();
 
@@ -122,9 +110,16 @@ export function useSessions() {
         return { ...prev, messages, updatedAt: now() };
       });
 
-      const { data } = await api.post(ASK_PATH, { q: text, session_id: id });
+      // IMPORTANT: extend timeout to survive retrieval+summary
+      const { data } = await api.post(
+        ASK_PATH,
+        { q: text, session_id: id },
+        { timeout: 120_000 }
+      );
 
       const sid: string = data.session_id || id;
+
+      // message may be a placeholder (empty content) - keep its id so we can detect completion later
       const aiMsg: Message = {
         id: data.message?.id || crypto.randomUUID(),
         role: (data.message?.role as Message["role"]) || "assistant",
@@ -132,6 +127,7 @@ export function useSessions() {
         ts: data.message?.ts ?? now(),
         references: data.message?.references ?? data.references ?? [],
       };
+
       const rightPane =
         data.rightPane ??
         data.right_pane ??
@@ -142,6 +138,7 @@ export function useSessions() {
     onSuccess: ({ sid, userMsg, aiMsg, rightPane }) => {
       if (!activeId || activeId !== sid) setActiveId(sid);
 
+      // merge into cache (evidence shows immediately in right pane)
       qc.setQueryData<Session>(["session", sid], (prev) => {
         const base: Session =
           prev ?? ({
@@ -154,7 +151,7 @@ export function useSessions() {
 
         const alreadyHasUser = (base.messages || []).some((m) => m.id === userMsg.id);
         const messages = alreadyHasUser
-          ? [...base.messages, aiMsg] // only add AI if user was optimistically added
+          ? [...base.messages, aiMsg]
           : [...base.messages, userMsg, aiMsg];
 
         return {
@@ -170,9 +167,30 @@ export function useSessions() {
         const row: SessionSummary = { id: sid, title: existing?.title || "New chat", updatedAt: now() };
         return [row, ...prev.filter((x) => x.id !== sid)];
       });
+
+      // -------- short-poll until the summary fills in --------
+      // We poll the active session and stop when the assistant message has non-empty content
+      const start = Date.now();
+      const maxMs = 90_000;
+      const msgId = aiMsg.id;
+
+      const tick = async () => {
+        await qc.invalidateQueries({ queryKey: ["session", sid] });
+        const s = qc.getQueryData<Session>(["session", sid]);
+
+        const done =
+          !!s?.messages?.find((m) => m.id === msgId && String(m.content || "").trim().length > 0);
+
+        if (done) return;
+
+        if (Date.now() - start < maxMs) {
+          setTimeout(tick, 1000);
+        }
+      };
+
+      setTimeout(tick, 800);
     },
   });
-
 
   return { listQ, activeQ, activeId, setActiveId, createM, deleteM, titleM, sendM };
 }

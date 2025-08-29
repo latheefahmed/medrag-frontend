@@ -1,4 +1,4 @@
-// app/(auth)/reset/page.tsx  (or app/auth/reset/page.tsx)
+// app/(auth)/reset/page.tsx  
 "use client";
 
 import { Suspense, useState } from "react";
