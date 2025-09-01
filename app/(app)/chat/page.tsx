@@ -80,7 +80,6 @@ export default function ChatPage() {
   const { listQ, activeQ, activeId, setActiveId, createM, deleteM, titleM, sendM } =
     useSessions();
 
-  // pick first session when list loads
   useEffect(() => {
     if (!activeId && listQ.data?.length) setActiveId(listQ.data[0].id);
   }, [activeId, listQ.data, setActiveId]);
@@ -110,11 +109,11 @@ export default function ChatPage() {
     sendM.mutate({ id, text: t });
   };
 
-  // fixed grid; only center & right panes scroll
+
   const LEFT = "clamp(10rem, 13vw, 12rem)";
   const CENTER = "minmax(900px, 1fr)";
   const RIGHT = "clamp(18rem, 22vw, 22rem)";
-  const STICKY_TOP = 64; // header height
+  const STICKY_TOP = 64; 
 
   return (
     <div className="min-h-[100dvh] bg-gradient-to-b from-zinc-50 via-zinc-50 to-zinc-100">
@@ -122,7 +121,7 @@ export default function ChatPage() {
         className="mx-auto max-w-[1700px] px-5 py-5 grid gap-5"
         style={{ gridTemplateColumns: `${LEFT} ${CENTER} ${RIGHT}` }}
       >
-        {/* LEFT (sticky sessions) */}
+        {}
         <aside>
           <div style={{ position: "sticky", top: STICKY_TOP }}>
             <Card className="bg-white/95 shadow-sm ring-1 ring-black/5 rounded-2xl">

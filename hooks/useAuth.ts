@@ -38,9 +38,7 @@ export function useAuth() {
 
   const signupM = useMutation({
     mutationFn: async ({ email, password, role, name }: SignupArgs) => {
-      // 🔑 Send role (and optional name) to backend
       await api.post("/auth/signup", { email, password, role, name });
-      // auto-login for now (email verification comes next phase)
       const { data } = await api.post("/auth/login", { email, password });
       return data;
     },

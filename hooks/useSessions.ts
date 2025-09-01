@@ -119,7 +119,7 @@ export function useSessions() {
 
       const sid: string = data.session_id || id;
 
-      // message may be a placeholder (empty content) - keep its id so we can detect completion later
+
       const aiMsg: Message = {
         id: data.message?.id || crypto.randomUUID(),
         role: (data.message?.role as Message["role"]) || "assistant",
@@ -138,7 +138,7 @@ export function useSessions() {
     onSuccess: ({ sid, userMsg, aiMsg, rightPane }) => {
       if (!activeId || activeId !== sid) setActiveId(sid);
 
-      // merge into cache (evidence shows immediately in right pane)
+
       qc.setQueryData<Session>(["session", sid], (prev) => {
         const base: Session =
           prev ?? ({
@@ -168,8 +168,6 @@ export function useSessions() {
         return [row, ...prev.filter((x) => x.id !== sid)];
       });
 
-      // -------- short-poll until the summary fills in --------
-      // We poll the active session and stop when the assistant message has non-empty content
       const start = Date.now();
       const maxMs = 90_000;
       const msgId = aiMsg.id;

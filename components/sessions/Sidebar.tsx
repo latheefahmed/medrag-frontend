@@ -8,12 +8,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useSessions } from "@/hooks/useSessions";
 
-/**
- * Polished sessions list.
- * Works with your existing hook shape:
- *   const { sessionsQ, activeQ, createM, selectM } = useSessions();
- * If your hook also exposes titleM/deleteM, we auto-enable Rename/Delete.
- */
+
 export default function Sidebar() {
   const sess = useSessions() as any;
   const { sessionsQ, activeQ, createM, selectM } = sess;
